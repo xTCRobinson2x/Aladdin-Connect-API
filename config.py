@@ -1,2 +1,0 @@
-username = 'user@email.com'
-password = 'password'
