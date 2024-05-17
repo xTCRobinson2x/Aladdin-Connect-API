@@ -4,6 +4,8 @@ import hashlib
 import base64
 import json
 import config
+import logging
+import datetime
 
 class AladdinConnect:
     AUTH_HOST = 'https://cognito-idp.us-east-2.amazonaws.com/'
@@ -118,15 +120,30 @@ class AladdinConnect:
             raise Exception(f"Error setting door status: {response.status_code} {response.text}")
 
 
-# Usage example
-username = config.username
-password = config.password
+def monitor_door():
+    now = datetime.datetime.now()
+    username = config.username
+    password = config.password
+    logging.basicConfig(filename='/var/log/garage_door_monitor.log', level=logging.INFO)
+    logger = logging.getLogger()
+    aladdin = AladdinConnect(username, password)
+    doors = aladdin.get_all_doors()
 
-aladdin = AladdinConnect(username, password)
-doors = aladdin.get_all_doors()
+    while True:
+        for door in doors:
+            door_status = aladdin.DoorStatus.get(door['status]'], 'UNKNOWN')
+            logger.info(f"{now} - {door['name']} is {door_status}")
+            
+            if door_status == 'OPEN':
+                if not door['last_opened']:
+                    door['last_opened'] = now
+                elif (now - door['last_opened']).seconds >= 1800 and (now.hour >= 22 or now.hour <= 6 ):
+                    aladdin.set_door_status(door,aladdin.DesiredDoorStatus['CLOSE'])
+                    logger.info(f"{now} - Closing {door['name']} due to 30 min after hours rule")
+            else:
+                door['last_opened'] = None
+            
+        time.sleep(600)
 
-for door in doors:
-    door_status = AladdinConnect.DoorStatus.get(door['status'], 'UNKNOWN')
-    print(f"Door Name: {door['name']}, Status: {door_status}")
-    #aladdin.set_door_status(door, AladdinConnect.DesiredDoorStatus['OPEN'])
-    #aladdin.set_door_status(door, AladdinConnect.DesiredDoorStatus['CLOSE'])
+if __name__ == "__main__":
+    monitor_door()
