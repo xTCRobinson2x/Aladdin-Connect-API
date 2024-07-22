@@ -121,37 +121,12 @@ class AladdinConnect:
             raise Exception(f"Error setting door status: {response.status_code} {response.text}")
 
 
-def monitor_door():
-    username = config.username
-    password = config.password
-    logging.basicConfig(filename='/var/log/aladdin_garage_monitor.log', level=logging.INFO)
-    logger = logging.getLogger()
-    aladdin = AladdinConnect(username, password)
 
-    logger.info(f"Starting monitoring")
+username = config.username
+password = config.password
 
-    while True:
-        doors = aladdin.get_all_doors()
-        now = datetime.datetime.now()
-        for door in doors:
-            door_status = aladdin.DoorStatus.get(door['status'], 'UNKNOWN')
-            logger.info(f"{now} - {door['name']} is {door_status}")
-            
-            if door_status == 'OPEN':
-                if not door.get('last_opened'):
-                    door['last_opened'] = now
-                    logger.info(f"{now} - {door['name']} last opened {door['last_opened']}")
-                elif (now - door['last_opened']).seconds >= 360 and (now.hour >= 22 or now.hour <= 6):
-                    aladdin.set_door_status(door, aladdin.DesiredDoorStatus['CLOSE'])
-                    logger.info(f"{now} - Closing {door['name']} due to 30 min after hours rule")
-                elif (door['last_opened'] and (now.hour >= 22 or now.hour <= 6)):
-                    logger.info(f"{now} - {door['name']} last opened {door['last_opened']}")
-                    
-            else:
-                door['last_opened'] = None
-                #logger.info(f"{now} - {door['name']} is {door_status}")
-            
-        time.sleep(60)
-
-if __name__ == "__main__":
-    monitor_door()
+aladdin = AladdinConnect(username, password)
+doors = aladdin.get_all_doors()
+for door in doors:
+    door_status = aladdin.DoorStatus.get(door['status'], 'UNKNOWN')
+    print(f"{door['name']} is {door_status}")

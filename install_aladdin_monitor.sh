@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Define variables
 APP_USER="aladdin_monitor"
 APP_DIR="/opt/aladdin_garage_monitor"
 SERVICE_FILE="/etc/systemd/system/aladdin_garage_monitor.service"
